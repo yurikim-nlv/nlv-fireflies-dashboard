@@ -88,8 +88,8 @@ def fetch_all_transcripts():
         transcripts(limit: $limit, skip: $skip) {
             id
             title
-            dateString
-            organizerEmail
+            date
+            organizer_email
         }
     }
     """
@@ -145,14 +145,14 @@ def compute_dashboard_data(users, transcripts):
 
     # Count organized meetings per NLV user
     for t in transcripts:
-        organizer = (t.get("organizerEmail") or "").lower()
+        organizer = (t.get("organizer_email") or "").lower()
         if organizer not in user_map:
             continue
 
         user_map[organizer]["meetings_organized_all_time"] += 1
 
         # Check if within last 30 days
-        date_str = t.get("dateString")
+        date_str = t.get("date")
         if date_str:
             try:
                 # Fireflies dateString can be various formats; try common ones
