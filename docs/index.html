@@ -2,10 +2,345 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>NLV Fireflies Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLV Fireflies Usage Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #1a1a2e;
+            padding: 2rem;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            color: #1a1a2e;
+            margin-bottom: 0.25rem;
+        }
+        .header .subtitle {
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+        .timestamp {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.85rem;
+            margin-bottom: 2rem;
+        }
+        .charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .chart-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .chart-card h2 {
+            font-size: 1rem;
+            color: #374151;
+            margin-bottom: 1rem;
+        }
+        .table-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            overflow-x: auto;
+        }
+        .table-card h2 {
+            font-size: 1rem;
+            color: #374151;
+            margin-bottom: 1rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th {
+            text-align: left;
+            padding: 0.6rem 0.8rem;
+            border-bottom: 2px solid #e5e7eb;
+            color: #6b7280;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        td {
+            padding: 0.6rem 0.8rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        tr:hover td {
+            background: #f9fafb;
+        }
+        .admin-badge {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 0.15rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        @media (max-width: 768px) {
+            .charts { grid-template-columns: 1fr; }
+            body { padding: 1rem; }
+        }
+    </style>
 </head>
 <body>
-    <h1>NextLadder Ventures — Fireflies Dashboard</h1>
-    <p>Dashboard has not been generated yet. Run <code>py generate.py</code> with a valid API key.</p>
+    <div class="header">
+        <h1>NextLadder Ventures &mdash; Fireflies Dashboard</h1>
+        <p class="subtitle">Team meeting analytics &amp; usage overview</p>
+    </div>
+    <p class="timestamp">Last updated: 2026-03-19 13:57:45</p>
+
+    <div class="charts">
+        <div class="chart-card">
+            <h2>Meetings Organized (All Time)</h2>
+            <canvas id="chartAllTime"></canvas>
+        </div>
+        <div class="chart-card">
+            <h2>Meetings Organized (Last 30 Days)</h2>
+            <canvas id="chartLast30"></canvas>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <h2>Team Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th class="num">Transcripts</th>
+                    <th class="num">Minutes</th>
+                    <th class="num">Organized (All)</th>
+                    <th class="num">Organized (30d)</th>
+                    <th>Last Meeting</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const DATA = [
+  {
+    "name": "Yuri Kim",
+    "email": "yuri.kim@nextladder.com",
+    "num_transcripts": 111,
+    "minutes_consumed": 4922.6298828125,
+    "recent_meeting": "01KM0Z6ZVGXCD8VEKZSQC68NXS",
+    "is_admin": true,
+    "meetings_organized_all_time": 111,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Kurt Tsuo",
+    "email": "kurt.tsuo@nextladder.com",
+    "num_transcripts": 14,
+    "minutes_consumed": 612.9400024414062,
+    "recent_meeting": "01KM18K2X7FSB9QB3BAZ704F81",
+    "is_admin": false,
+    "meetings_organized_all_time": 14,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Callie Schwartz",
+    "email": "callie.schwartz@nextladder.com",
+    "num_transcripts": 12,
+    "minutes_consumed": 274.29998779296875,
+    "recent_meeting": "01KKCP533M7RXRHFB4NZDY0QJN",
+    "is_admin": true,
+    "meetings_organized_all_time": 12,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Aras Jizan",
+    "email": "aras.jizan@nextladder.com",
+    "num_transcripts": 5,
+    "minutes_consumed": 173.1999969482422,
+    "recent_meeting": "01KHVQT9WWAPMDSDDATQ96W57G",
+    "is_admin": false,
+    "meetings_organized_all_time": 5,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Kyle Nelson",
+    "email": "kyle.nelson@nextladder.com",
+    "num_transcripts": 5,
+    "minutes_consumed": 272.2300109863281,
+    "recent_meeting": "01KK9KV07TZYQJC78VM7QG7N5D",
+    "is_admin": false,
+    "meetings_organized_all_time": 5,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Rhett Dornbach-Bender",
+    "email": "rhett.dornbach-bender@nextladder.com",
+    "num_transcripts": 1,
+    "minutes_consumed": 20.030000686645508,
+    "recent_meeting": "01KHP9GDTWA6S6NPAWSZDC45JP",
+    "is_admin": false,
+    "meetings_organized_all_time": 1,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Bao Yi Lei",
+    "email": "baoyi.lei@nextladder.com",
+    "num_transcripts": 1,
+    "minutes_consumed": 23.950000762939453,
+    "recent_meeting": "01KK9QBBSHVMMXW2XP3Q3YYKPW",
+    "is_admin": false,
+    "meetings_organized_all_time": 1,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Richard Holmes",
+    "email": "richard.holmes@nextladder.com",
+    "num_transcripts": 24,
+    "minutes_consumed": 0,
+    "recent_meeting": null,
+    "is_admin": false,
+    "meetings_organized_all_time": 0,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Gretchen Reiter",
+    "email": "gretchen.reiter@nextladder.com",
+    "num_transcripts": 3,
+    "minutes_consumed": 127.66999816894531,
+    "recent_meeting": "01KJTMMSECQ79BDEQM00CTS54H",
+    "is_admin": false,
+    "meetings_organized_all_time": 0,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Traci Terry",
+    "email": "traci.terry@nextladder.com",
+    "num_transcripts": 0,
+    "minutes_consumed": 0,
+    "recent_meeting": null,
+    "is_admin": false,
+    "meetings_organized_all_time": 0,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Clarence Wardell",
+    "email": "clarence.wardell@nextladder.com",
+    "num_transcripts": 0,
+    "minutes_consumed": 0,
+    "recent_meeting": null,
+    "is_admin": false,
+    "meetings_organized_all_time": 0,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Jerry Kuo",
+    "email": "jerry.kuo@nextladder.com",
+    "num_transcripts": 0,
+    "minutes_consumed": 0,
+    "recent_meeting": null,
+    "is_admin": false,
+    "meetings_organized_all_time": 0,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Hugh Chang",
+    "email": "hugh.chang@nextladder.com",
+    "num_transcripts": 0,
+    "minutes_consumed": 0,
+    "recent_meeting": null,
+    "is_admin": false,
+    "meetings_organized_all_time": 0,
+    "meetings_organized_last_30": 0
+  },
+  {
+    "name": "Ryan Rippel",
+    "email": "ryan.rippel@nextladder.com",
+    "num_transcripts": 0,
+    "minutes_consumed": 0,
+    "recent_meeting": null,
+    "is_admin": false,
+    "meetings_organized_all_time": 0,
+    "meetings_organized_last_30": 0
+  }
+];
+
+        // Populate table
+        const tbody = document.getElementById('tableBody');
+        DATA.forEach(d => {
+            const row = document.createElement('tr');
+            const adminBadge = d.is_admin ? '<span class="admin-badge">Admin</span>' : '';
+            const lastMeeting = d.recent_meeting
+                ? new Date(d.recent_meeting).toLocaleDateString()
+                : '—';
+            row.innerHTML = `
+                <td>$${d.name}</td>
+                <td>$${d.email}</td>
+                <td>$${adminBadge}</td>
+                <td class="num">$${d.num_transcripts.toLocaleString()}</td>
+                <td class="num">$${Math.round(d.minutes_consumed).toLocaleString()}</td>
+                <td class="num">$${d.meetings_organized_all_time.toLocaleString()}</td>
+                <td class="num">$${d.meetings_organized_last_30.toLocaleString()}</td>
+                <td>$${lastMeeting}</td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Chart colors
+        const colors = [
+            '#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6',
+            '#ec4899','#06b6d4','#84cc16','#f97316','#6366f1',
+            '#14b8a6','#e11d48','#a855f7','#0ea5e9'
+        ];
+
+        const names = ["Yuri Kim", "Kurt Tsuo", "Callie Schwartz", "Aras Jizan", "Kyle Nelson", "Rhett Dornbach-Bender", "Bao Yi Lei", "Richard Holmes", "Gretchen Reiter", "Traci Terry", "Clarence Wardell", "Jerry Kuo", "Hugh Chang", "Ryan Rippel"];
+        const allTime = [111, 14, 12, 5, 5, 1, 1, 0, 0, 0, 0, 0, 0, 0];
+        const last30 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        function makeChart(canvasId, data, label) {
+            new Chart(document.getElementById(canvasId), {
+                type: 'bar',
+                data: {
+                    labels: names,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        backgroundColor: colors.slice(0, data.length),
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } },
+                        x: { ticks: { maxRotation: 45, minRotation: 45, font: { size: 11 } } }
+                    }
+                }
+            });
+        }
+
+        makeChart('chartAllTime', allTime, 'Meetings Organized');
+        makeChart('chartLast30', last30, 'Meetings (30d)');
+    </script>
 </body>
 </html>
