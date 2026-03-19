@@ -28,23 +28,6 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
-NLV_EMAILS = {
-    "yuri.kim@nextladder.com",
-    "kurt.tsuo@nextladder.com",
-    "callie.schwartz@nextladder.com",
-    "kyle.nelson@nextladder.com",
-    "aras.jizan@nextladder.com",
-    "baoyi.lei@nextladder.com",
-    "rhett.dornbach-bender@nextladder.com",
-    "richard.holmes@nextladder.com",
-    "clarence.wardell@nextladder.com",
-    "ryan.rippel@nextladder.com",
-    "traci.terry@nextladder.com",
-    "gretchen.reiter@nextladder.com",
-    "jerry.kuo@nextladder.com",
-    "hugh.chang@nextladder.com",
-}
-
 
 def graphql_request(query, variables=None):
     """Execute a GraphQL request against the Fireflies API."""
@@ -61,24 +44,19 @@ def graphql_request(query, variables=None):
 
 
 def fetch_users():
-    """Fetch all team members from Fireflies."""
+    """Fetch all team members from Fireflies (only paying seats)."""
     query = """
     {
         users {
             user_id
             email
             name
-            num_transcripts
-            recent_meeting
-            minutes_consumed
             is_admin
         }
     }
     """
     data = graphql_request(query)
-    users = data.get("users", [])
-    # Filter to NLV emails only
-    return [u for u in users if u.get("email", "").lower() in NLV_EMAILS]
+    return data.get("users", [])
 
 
 def fetch_all_transcripts():
@@ -113,37 +91,21 @@ def compute_dashboard_data(users, transcripts):
     """Compute per-user metrics from users and transcripts."""
     now = datetime.now(timezone.utc)
     thirty_days_ago = now - timedelta(days=30)
+    thirty_days_ago_ms = int(thirty_days_ago.timestamp() * 1000)
 
-    # Build user lookup by email
+    # Build user lookup from the API-returned users (paying seats only)
+    user_emails = set()
     user_map = {}
     for u in users:
         email = u.get("email", "").lower()
+        user_emails.add(email)
         user_map[email] = {
             "name": u.get("name") or email.split("@")[0],
-            "email": email,
-            "num_transcripts": u.get("num_transcripts", 0),
-            "minutes_consumed": u.get("minutes_consumed", 0),
-            "recent_meeting": u.get("recent_meeting"),
-            "is_admin": u.get("is_admin", False),
             "meetings_organized_all_time": 0,
             "meetings_organized_last_30": 0,
         }
 
-    # Also add entries for NLV emails that may not appear in users but do organize meetings
-    for email in NLV_EMAILS:
-        if email not in user_map:
-            user_map[email] = {
-                "name": email.split("@")[0].replace(".", " ").title(),
-                "email": email,
-                "num_transcripts": 0,
-                "minutes_consumed": 0,
-                "recent_meeting": None,
-                "is_admin": False,
-                "meetings_organized_all_time": 0,
-                "meetings_organized_last_30": 0,
-            }
-
-    # Count organized meetings per NLV user
+    # Count organized meetings per user
     for t in transcripts:
         organizer = (t.get("organizer_email") or "").lower()
         if organizer not in user_map:
@@ -151,25 +113,12 @@ def compute_dashboard_data(users, transcripts):
 
         user_map[organizer]["meetings_organized_all_time"] += 1
 
-        # Check if within last 30 days
-        date_str = t.get("date")
-        if date_str:
-            try:
-                # Fireflies dateString can be various formats; try common ones
-                for fmt in ("%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%d"):
-                    try:
-                        dt = datetime.strptime(date_str, fmt).replace(tzinfo=timezone.utc)
-                        break
-                    except ValueError:
-                        continue
-                else:
-                    continue
-                if dt >= thirty_days_ago:
-                    user_map[organizer]["meetings_organized_last_30"] += 1
-            except Exception:
-                pass
+        # date is a Unix timestamp in milliseconds
+        date_ms = t.get("date")
+        if date_ms and date_ms >= thirty_days_ago_ms:
+            user_map[organizer]["meetings_organized_last_30"] += 1
 
-    # Sort by meetings organized all time descending
+    # Sort by all-time meetings descending
     results = sorted(user_map.values(), key=lambda x: x["meetings_organized_all_time"], reverse=True)
     return results
 
@@ -185,8 +134,12 @@ def render_html(dashboard_data):
 
     # Bake data as JSON
     js_data = json.dumps(dashboard_data, indent=2, default=str)
+    names_json = json.dumps(names)
+    all_time_json = json.dumps(all_time)
+    last_30_json = json.dumps(last_30)
 
-    html = f"""<!DOCTYPE html>
+    # Build HTML with separate CSS/JS blocks to avoid f-string/template-literal conflicts
+    html_top = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -271,14 +224,6 @@ def render_html(dashboard_data):
         tr:hover td {{
             background: #f9fafb;
         }}
-        .admin-badge {{
-            background: #dbeafe;
-            color: #1e40af;
-            padding: 0.15rem 0.5rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }}
         .num {{
             text-align: right;
             font-variant-numeric: tabular-nums;
@@ -313,13 +258,8 @@ def render_html(dashboard_data):
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th class="num">Transcripts</th>
-                    <th class="num">Minutes</th>
-                    <th class="num">Organized (All)</th>
-                    <th class="num">Organized (30d)</th>
-                    <th>Last Meeting</th>
+                    <th class="num">Meetings (Last 30 Days)</th>
+                    <th class="num">Meetings (All Time)</th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -328,27 +268,24 @@ def render_html(dashboard_data):
 
     <script>
         const DATA = {js_data};
+        const names = {names_json};
+        const allTime = {all_time_json};
+        const last30 = {last_30_json};
+"""
 
+    # JS block uses plain string (no f-string) to avoid $ conflicts
+    js_block = """
         // Populate table
         const tbody = document.getElementById('tableBody');
-        DATA.forEach(d => {{
+        DATA.forEach(d => {
             const row = document.createElement('tr');
-            const adminBadge = d.is_admin ? '<span class="admin-badge">Admin</span>' : '';
-            const lastMeeting = d.recent_meeting
-                ? new Date(d.recent_meeting).toLocaleDateString()
-                : '—';
             row.innerHTML = `
-                <td>${"${d.name}"}</td>
-                <td>${"${d.email}"}</td>
-                <td>${"${adminBadge}"}</td>
-                <td class="num">${"${d.num_transcripts.toLocaleString()}"}</td>
-                <td class="num">${"${Math.round(d.minutes_consumed).toLocaleString()}"}</td>
-                <td class="num">${"${d.meetings_organized_all_time.toLocaleString()}"}</td>
-                <td class="num">${"${d.meetings_organized_last_30.toLocaleString()}"}</td>
-                <td>${"${lastMeeting}"}</td>
+                <td>${d.name}</td>
+                <td class="num">${d.meetings_organized_last_30.toLocaleString()}</td>
+                <td class="num">${d.meetings_organized_all_time.toLocaleString()}</td>
             `;
             tbody.appendChild(row);
-        }});
+        });
 
         // Chart colors
         const colors = [
@@ -357,41 +294,38 @@ def render_html(dashboard_data):
             '#14b8a6','#e11d48','#a855f7','#0ea5e9'
         ];
 
-        const names = {json.dumps(names)};
-        const allTime = {json.dumps(all_time)};
-        const last30 = {json.dumps(last_30)};
-
-        function makeChart(canvasId, data, label) {{
-            new Chart(document.getElementById(canvasId), {{
+        function makeChart(canvasId, data, label) {
+            new Chart(document.getElementById(canvasId), {
                 type: 'bar',
-                data: {{
+                data: {
                     labels: names,
-                    datasets: [{{
+                    datasets: [{
                         label: label,
                         data: data,
                         backgroundColor: colors.slice(0, data.length),
                         borderRadius: 4,
-                    }}]
-                }},
-                options: {{
+                    }]
+                },
+                options: {
                     responsive: true,
-                    plugins: {{
-                        legend: {{ display: false }},
-                    }},
-                    scales: {{
-                        y: {{ beginAtZero: true, ticks: {{ precision: 0 }} }},
-                        x: {{ ticks: {{ maxRotation: 45, minRotation: 45, font: {{ size: 11 }} }} }}
-                    }}
-                }}
-            }});
-        }}
+                    plugins: {
+                        legend: { display: false },
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } },
+                        x: { ticks: { maxRotation: 45, minRotation: 45, font: { size: 11 } } }
+                    }
+                }
+            });
+        }
 
         makeChart('chartAllTime', allTime, 'Meetings Organized');
         makeChart('chartLast30', last30, 'Meetings (30d)');
     </script>
 </body>
 </html>"""
-    return html
+
+    return html_top + js_block
 
 
 def git_push():
@@ -416,7 +350,7 @@ def git_push():
 def main():
     print("Fetching Fireflies users...")
     users = fetch_users()
-    print(f"  Found {len(users)} NLV users.")
+    print(f"  Found {len(users)} users on Fireflies team.")
 
     print("Fetching all transcripts...")
     transcripts = fetch_all_transcripts()
