@@ -1,5 +1,5 @@
 """
-NLV Fireflies Usage Dashboard Generator
+Team Fireflies Usage Dashboard Generator
 
 Fetches data from the Fireflies GraphQL API, renders a static HTML dashboard,
 and pushes it to GitHub Pages via docs/index.html.
@@ -100,7 +100,7 @@ def compute_dashboard_data(users, transcripts):
         email = u.get("email", "").lower()
         user_emails.add(email)
         user_map[email] = {
-            "name": u.get("name") or email.split("@")[0],
+            "name": (u.get("name") or email.split("@")[0]).split()[0],
             "meetings_organized_all_time": 0,
             "meetings_organized_last_30": 0,
         }
@@ -144,7 +144,7 @@ def render_html(dashboard_data):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NLV Fireflies Usage Dashboard</title>
+    <title>Team Fireflies Usage Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
@@ -236,7 +236,7 @@ def render_html(dashboard_data):
 </head>
 <body>
     <div class="header">
-        <h1>NextLadder Ventures &mdash; Fireflies Dashboard</h1>
+        <h1>Team &mdash; Fireflies Dashboard</h1>
         <p class="subtitle">Team meeting analytics &amp; usage overview</p>
     </div>
     <p class="timestamp">Last updated: {timestamp}</p>
