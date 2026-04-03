@@ -98,7 +98,7 @@
         <h1>Team &mdash; Fireflies Dashboard</h1>
         <p class="subtitle">Team meeting analytics &amp; usage overview</p>
     </div>
-    <p class="timestamp">Last updated: 2026-03-19 14:04:51</p>
+    <p class="timestamp">Last updated: 2026-04-03 10:13:13</p>
 
     <div class="charts">
         <div class="chart-card">
@@ -129,28 +129,33 @@
         const DATA = [
   {
     "name": "Yuri",
-    "meetings_organized_all_time": 111,
-    "meetings_organized_last_30": 67
+    "meetings_organized_all_time": 119,
+    "meetings_organized_last_30": 41
   },
   {
     "name": "Kurt",
-    "meetings_organized_all_time": 14,
-    "meetings_organized_last_30": 14
+    "meetings_organized_all_time": 20,
+    "meetings_organized_last_30": 16
   },
   {
     "name": "Callie",
-    "meetings_organized_all_time": 12,
+    "meetings_organized_all_time": 15,
     "meetings_organized_last_30": 7
+  },
+  {
+    "name": "Kyle",
+    "meetings_organized_all_time": 8,
+    "meetings_organized_last_30": 6
+  },
+  {
+    "name": "Bao",
+    "meetings_organized_all_time": 8,
+    "meetings_organized_last_30": 8
   },
   {
     "name": "Aras",
     "meetings_organized_all_time": 5,
-    "meetings_organized_last_30": 3
-  },
-  {
-    "name": "Kyle",
-    "meetings_organized_all_time": 5,
-    "meetings_organized_last_30": 5
+    "meetings_organized_last_30": 0
   },
   {
     "name": "Rhett",
@@ -158,7 +163,7 @@
     "meetings_organized_last_30": 0
   },
   {
-    "name": "Bao",
+    "name": "Traci",
     "meetings_organized_all_time": 1,
     "meetings_organized_last_30": 1
   },
@@ -173,9 +178,9 @@
     "meetings_organized_last_30": 0
   }
 ];
-        const names = ["Yuri", "Kurt", "Callie", "Aras", "Kyle", "Rhett", "Bao", "Richard", "Gretchen"];
-        const allTime = [111, 14, 12, 5, 5, 1, 1, 0, 0];
-        const last30 = [67, 14, 7, 3, 5, 0, 1, 0, 0];
+        const names = ["Yuri", "Kurt", "Callie", "Kyle", "Bao", "Aras", "Rhett", "Traci", "Richard", "Gretchen"];
+        const allTime = [119, 20, 15, 8, 8, 5, 1, 1, 0, 0];
+        const last30 = [41, 16, 7, 6, 8, 0, 0, 1, 0, 0];
 
         // Populate table
         const tbody = document.getElementById('tableBody');
