@@ -98,7 +98,7 @@
         <h1>Team &mdash; Fireflies Dashboard</h1>
         <p class="subtitle">Team meeting analytics &amp; usage overview</p>
     </div>
-    <p class="timestamp">Last updated: 2026-04-28 07:58:02</p>
+    <p class="timestamp">Last updated: 2026-04-28 08:01:52</p>
 
     <div class="charts">
         <div class="chart-card">
@@ -118,6 +118,7 @@
                 <tr>
                     <th>Name</th>
                     <th class="num">Meetings (Last 30 Days)</th>
+                    <th class="num">Meetings (Last 60 Days)</th>
                     <th class="num">Meetings (All Time)</th>
                 </tr>
             </thead>
@@ -130,61 +131,73 @@
   {
     "name": "Yuri",
     "meetings_organized_all_time": 152,
+    "meetings_organized_last_60": 81,
     "meetings_organized_last_30": 35
   },
   {
     "name": "Kurt",
     "meetings_organized_all_time": 31,
+    "meetings_organized_last_60": 28,
     "meetings_organized_last_30": 14
   },
   {
     "name": "Callie",
     "meetings_organized_all_time": 18,
+    "meetings_organized_last_60": 12,
     "meetings_organized_last_30": 5
   },
   {
     "name": "Bao",
     "meetings_organized_all_time": 15,
+    "meetings_organized_last_60": 15,
     "meetings_organized_last_30": 13
   },
   {
     "name": "Kyle",
     "meetings_organized_all_time": 9,
+    "meetings_organized_last_60": 9,
     "meetings_organized_last_30": 3
   },
   {
     "name": "Aras",
     "meetings_organized_all_time": 5,
+    "meetings_organized_last_60": 0,
     "meetings_organized_last_30": 0
   },
   {
     "name": "Ashwini",
     "meetings_organized_all_time": 3,
+    "meetings_organized_last_60": 3,
     "meetings_organized_last_30": 3
   },
   {
     "name": "Rhett",
     "meetings_organized_all_time": 1,
+    "meetings_organized_last_60": 0,
     "meetings_organized_last_30": 0
   },
   {
     "name": "Traci",
     "meetings_organized_all_time": 1,
+    "meetings_organized_last_60": 1,
     "meetings_organized_last_30": 0
   },
   {
     "name": "Richard",
     "meetings_organized_all_time": 0,
+    "meetings_organized_last_60": 0,
     "meetings_organized_last_30": 0
   },
   {
     "name": "Gretchen",
     "meetings_organized_all_time": 0,
+    "meetings_organized_last_60": 0,
     "meetings_organized_last_30": 0
   },
   {
     "name": "Clarence",
     "meetings_organized_all_time": 0,
+    "meetings_organized_last_60": 0,
     "meetings_organized_last_30": 0
   }
 ];
@@ -199,6 +212,7 @@
             row.innerHTML = `
                 <td>${d.name}</td>
                 <td class="num">${d.meetings_organized_last_30.toLocaleString()}</td>
+                <td class="num">${d.meetings_organized_last_60.toLocaleString()}</td>
                 <td class="num">${d.meetings_organized_all_time.toLocaleString()}</td>
             `;
             tbody.appendChild(row);
